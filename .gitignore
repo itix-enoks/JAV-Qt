@@ -1,0 +1,4 @@
+build/*.o
+build/*.h
+build/jav-qt
+build/Makefile

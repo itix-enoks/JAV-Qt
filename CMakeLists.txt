@@ -25,6 +25,8 @@ qt_standard_project_setup()
 # Release builds set JAVQT_BUNDLED_DEPS so every platform links the same.
 #
 option(JAVQT_BUNDLED_DEPS "Build spdlog and gumbo from source instead of using system packages" OFF)
+# Off for packages, so their self-test (jav-qt --self-test) proves the fonts were packaged
+option(JAVQT_FONTS_FROM_SOURCE "Fall back to the source tree's fonts, for running from the build directory" ON)
 include(FetchContent)
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)  # downloaded files get the extraction time, so changes rebuild
@@ -105,9 +107,10 @@ qt_add_executable(jav-qt WIN32 MACOSX_BUNDLE
 
 target_include_directories(jav-qt PRIVATE src)
 target_link_libraries(jav-qt PRIVATE Qt6::Widgets Qt6::Network Qt6::Concurrent spdlog::spdlog ${GUMBO_TARGET})
-target_compile_definitions(jav-qt PRIVATE
-    JAVQT_VERSION="${PROJECT_VERSION}"
-    JAVQT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")  # fonts when run from the build tree, see paths::fontsDir()
+target_compile_definitions(jav-qt PRIVATE JAVQT_VERSION="${PROJECT_VERSION}")
+if(JAVQT_FONTS_FROM_SOURCE)
+    target_compile_definitions(jav-qt PRIVATE JAVQT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")  # see paths::fontsDir()
+endif()
 if(MSVC)
     target_compile_options(jav-qt PRIVATE /utf-8)  # the sources are UTF-8
 endif()

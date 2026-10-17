@@ -6,6 +6,8 @@
 
 #include <QApplication>
 #include <QIcon>
+#include <QImageReader>
+#include <QSslSocket>
 #include <QTimer>
 
 #include <spdlog/cfg/env.h>
@@ -51,6 +53,35 @@ namespace {
         spdlog::cfg::load_env_levels();
     }
 
+    /*
+     * `jav-qt --self-test`: check that a package works (it found its fonts and
+     * Qt's TLS and image plugins, and can show its window), then quit.
+     * Run by the release builds; the result is logged and is the exit code.
+     */
+    int selfTest(QApplication &app, MainWindow &window, bool fontsLoaded)
+    {
+        const QList<QByteArray> formats = QImageReader::supportedImageFormats();
+        const std::vector<std::pair<const char *, bool>> checks{
+            {"bundled fonts loaded", fontsLoaded},
+            {"HTTPS supported", QSslSocket::supportsSsl()},
+            {"JPEG pictures supported", formats.contains("jpeg")},
+            {"PNG pictures supported", formats.contains("png")},
+        };
+
+        window.show();
+        QTimer::singleShot(1000, &app, &QApplication::quit);
+        app.exec();
+
+        bool passed = true;
+        for (const auto &[name, ok] : checks) {
+            spdlog::log(ok ? spdlog::level::info : spdlog::level::err, "Self-test: {}: {}", name, ok ? "yes" : "NO");
+            passed = passed && ok;
+        }
+        spdlog::info("Self-test: TLS backend {}, platform {}", QSslSocket::activeBackend(), QGuiApplication::platformName());
+        spdlog::info("Self-test {}", passed ? "passed" : "FAILED");
+        return passed ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
+
 } /* namespace */
 
 int main(int argc, char *argv[]) {
@@ -63,7 +94,7 @@ int main(int argc, char *argv[]) {
     spdlog::info("JAV-Qt {} starting, data in {}", JAVQT_VERSION, paths::dataDir());
 
     javQt.setStyle("Fusion");  /* the same base look everywhere, under the style sheet */
-    style::loadFonts();
+    const bool fontsLoaded = style::loadFonts();
     javQt.setStyleSheet(style::sheet());
 
     /* Load options */
@@ -76,6 +107,8 @@ int main(int argc, char *argv[]) {
     Scraper scraper(manager, db);
 
     MainWindow window(options, db, scraper);
+    if (javQt.arguments().contains("--self-test"))
+        return selfTest(javQt, window, fontsLoaded);
     window.scanLibrary();
 
     /* Start one download now, then one every START_INTERVAL */

@@ -1,13 +1,66 @@
 #include "gui/style.hpp"
+#include "log.hpp"
+
+#include <QApplication>
+#include <QDir>
+#include <QFont>
+#include <QFontDatabase>
+
+namespace {
+
+    /* Register every font file matching `pattern` in assets/fonts/<subdir>; false if any failed */
+    bool addFonts(const QString &subdir, const QString &pattern)
+    {
+        const QDir dir(QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../assets/fonts/" + subdir));
+        const QStringList files = dir.entryList({pattern}, QDir::Files);
+        if (files.isEmpty()) {
+            spdlog::error("No fonts {} in {}", pattern, dir.path());
+            return false;
+        }
+        bool loaded = true;
+        for (const QString &file : files) {
+            const int id = QFontDatabase::addApplicationFont(dir.filePath(file));
+            if (id < 0) {
+                spdlog::error("Could not load font {}", dir.filePath(file));
+                loaded = false;
+                continue;
+            }
+            spdlog::debug("Loaded font {}: {}", file, QFontDatabase::applicationFontFamilies(id).join(", "));
+        }
+        return loaded;
+    }
+
+} /* namespace */
 
 namespace style {
+
+    bool loadFonts()
+    {
+        /* Every weight, upright and italic */
+        bool loaded = addFonts("inter/static", "Inter_18pt-*.ttf");
+        loaded = addFonts("noto-sans-cjk-jp", "NotoSansCJKjp-*.otf") && loaded;
+
+        if (!QFontDatabase::hasFamily(FONT_FAMILY)) {
+            spdlog::error("Font family {} not available, the GUI falls back to the system font", FONT_FAMILY);
+            return false;
+        }
+        if (!QFontDatabase::hasFamily(CJK_FONT_FAMILY))
+            spdlog::warn("Font family {} not available, Japanese text falls back to another font", CJK_FONT_FAMILY);
+
+        QFont font;
+        font.setFamilies({FONT_FAMILY, CJK_FONT_FAMILY});
+        font.setPointSize(10);
+        font.setHintingPreference(QFont::PreferNoHinting);  /* keep Inter's own shapes */
+        QApplication::setFont(font);
+        return loaded;
+    }
 
     QString sheet()
     {
         /* %1.. are filled in below, in the order of the arg() calls */
         return QString(R"(
 * {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "%12", "%13";
     font-size: 10pt;
     color: #000000;
 }
@@ -27,7 +80,6 @@ QStackedWidget, QScrollArea, #scrollContents, QStatusBar {
 }
 #boardTitle {
     color: %9;
-    font-family: Tahoma, sans-serif;
     font-size: 18pt;
     font-weight: bold;
 }
@@ -137,7 +189,7 @@ QToolTip {
 )")
             .arg(FADE_TOP.name(), BACKGROUND.name(), POST.name(), POST_BORDER.name(), SUBJECT.name(),
                  NAME.name(), LINK.name(), LINK_HOVER.name(), TITLE.name())
-            .arg(HIGHLIGHT.name(), HIGHLIGHT_BORDER.name());
+            .arg(HIGHLIGHT.name(), HIGHLIGHT_BORDER.name(), FONT_FAMILY, CJK_FONT_FAMILY);
     }
 
     QString link(const QString &href, const QString &text)

@@ -19,13 +19,15 @@
 
 int main(int argc, char *argv[]) {
     QApplication javQt(argc, argv);
-    javQt.setStyle("Fusion");  /* the same base look everywhere, under the style sheet */
-    javQt.setStyleSheet(style::sheet());
 
     /* Logging: level defaults to info, override with e.g. SPDLOG_LEVEL=debug */
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
     spdlog::cfg::load_env_levels();
     spdlog::info("JAV-Qt starting");
+
+    javQt.setStyle("Fusion");  /* the same base look everywhere, under the style sheet */
+    style::loadFonts();
+    javQt.setStyleSheet(style::sheet());
 
     /* Load options */
     Options options;

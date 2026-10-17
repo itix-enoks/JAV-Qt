@@ -27,8 +27,7 @@ namespace {
 LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(parent), m_videos(videos)
 {
     m_filter.setSourceModel(&m_videos);
-    m_filter.setSortCaseSensitivity(Qt::CaseInsensitive);
-    m_filter.sort(0);
+    m_filter.sort(0);  /* see VideoFilter::lessThan() */
 
     /* Sidebar: search, then the filters in a post box */
     auto *sideBar = new QFrame;
@@ -43,6 +42,17 @@ LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(pare
     m_search->setPlaceholderText(tr("Search ID"));
     m_search->setClearButtonEnabled(true);
     side->addWidget(m_search);
+
+    auto *sortRow = new QHBoxLayout;
+    auto *sortLabel = new QLabel(tr("Sort by"));
+    sortLabel->setObjectName("sectionTitle");
+    m_sortBy = new QComboBox;
+    m_sortBy->addItem(tr("ID"), int(VideoFilter::SortBy::Id));
+    m_sortBy->addItem(tr("Stars"), int(VideoFilter::SortBy::Stars));
+    m_sortBy->addItem(tr("Bookmarked"), int(VideoFilter::SortBy::Bookmarked));
+    sortRow->addWidget(sortLabel);
+    sortRow->addWidget(m_sortBy, 1);
+    side->addLayout(sortRow);
 
     auto *post = new QFrame;
     post->setObjectName("post");
@@ -126,6 +136,9 @@ LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(pare
         emit this->videoActivated(m_videos.video(m_filter.mapToSource(index).row()));
     });
     connect(m_search, &QLineEdit::textChanged, this, &LibraryPage::applyFilters);
+    connect(m_sortBy, &QComboBox::currentIndexChanged, this, [this] {
+        m_filter.setSortBy(VideoFilter::SortBy(m_sortBy->currentData().toInt()));
+    });
     for (QComboBox *combo : {m_actress, m_director, m_maker})
         connect(combo, &QComboBox::currentIndexChanged, this, &LibraryPage::applyFilters);
     connect(m_genres, &QListWidget::itemChanged, this, &LibraryPage::applyFilters);

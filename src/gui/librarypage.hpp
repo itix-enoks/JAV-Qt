@@ -39,6 +39,7 @@ private:
     VideoFilter m_filter;
 
     QLineEdit *m_search;
+    QComboBox *m_sortBy;
     QComboBox *m_actress;
     QComboBox *m_director;
     QComboBox *m_maker;

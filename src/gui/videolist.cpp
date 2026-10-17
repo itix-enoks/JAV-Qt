@@ -87,6 +87,33 @@ void VideoFilter::setCriteria(const Criteria &criteria)
     this->endFilterChange(QSortFilterProxyModel::Direction::Rows);
 }
 
+void VideoFilter::setSortBy(SortBy sortBy)
+{
+    m_sortBy = sortBy;
+    this->invalidate();  /* re-sorts */
+}
+
+bool VideoFilter::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    const auto *source = static_cast<const VideoListModel *>(this->sourceModel());
+    const model::Video &a = source->video(left.row());
+    const model::Video &b = source->video(right.row());
+
+    switch (m_sortBy) {
+    case SortBy::Stars:
+        if (a.stars != b.stars)
+            return a.stars > b.stars;
+        break;
+    case SortBy::Bookmarked:
+        if (a.bookmarked != b.bookmarked)
+            return a.bookmarked;
+        break;
+    case SortBy::Id:
+        break;
+    }
+    return a.id.compare(b.id, Qt::CaseInsensitive) < 0;
+}
+
 bool VideoFilter::filterAcceptsRow(int sourceRow, const QModelIndex &) const
 {
     const auto *source = static_cast<const VideoListModel *>(this->sourceModel());

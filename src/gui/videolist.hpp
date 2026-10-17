@@ -43,7 +43,7 @@ private:
 };
 
 /**
- * The sidebar's search and filters; sorts by id.
+ * The sidebar's search, filters and sort order.
  * Names are matched as displayed, since the same actress (or genre) has
  * different ids on DMM and JavLibrary.
  */
@@ -63,11 +63,21 @@ public:
 
     void setCriteria(const Criteria &criteria);
 
+    /* Ties are sorted by id */
+    enum class SortBy {
+        Id,          /* ascending */
+        Stars,       /* most first */
+        Bookmarked,  /* bookmarked first */
+    };
+    void setSortBy(SortBy sortBy);
+
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
     Criteria m_criteria;
+    SortBy m_sortBy = SortBy::Id;
 };
 
 /**

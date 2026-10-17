@@ -1,4 +1,10 @@
 build/*.o
 build/*.h
+build/*.cpp
 build/jav-qt
 build/Makefile
+build/.qmake.stash
+
+# Runtime data: the local database (with user notes) and downloaded images
+db.json
+assets/thumbnails/

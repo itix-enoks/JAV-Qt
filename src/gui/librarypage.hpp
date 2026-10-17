@@ -45,5 +45,6 @@ private:
     QListWidget *m_genres;
     QLabel *m_count;
     QListView *m_grid;
+    QLabel *m_empty;  /* instead of the grid while there are no videos */
     QTimer m_refreshChoices;  /* coalesces model changes */
 };

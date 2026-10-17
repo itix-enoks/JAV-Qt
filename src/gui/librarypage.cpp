@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QSignalBlocker>
+#include <QStackedLayout>
 #include <QVBoxLayout>
 
 namespace {
@@ -99,7 +100,26 @@ LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(pare
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     layout->addWidget(sideBar);
-    layout->addWidget(m_grid, 1);
+
+    /* First run: nothing stored yet */
+    m_empty = new QLabel(tr("<p style=\"font-size: 14pt; font-weight: bold;\">No videos yet</p>"
+                            "<p>Click <b>Import From Folder (Library)</b> at the top right and pick the folder "
+                            "with your videos.<br/>JAV-Qt finds the ID in each file or folder name (e.g. "
+                            "MKMP-705) and downloads its details and pictures.</p>"));
+    m_empty->setObjectName("muted");
+    m_empty->setAlignment(Qt::AlignCenter);
+    m_empty->setWordWrap(true);
+
+    auto *content = new QStackedLayout;
+    content->addWidget(m_grid);
+    content->addWidget(m_empty);
+    layout->addLayout(content, 1);
+    auto showEmpty = [this, content] {
+        content->setCurrentWidget(m_videos.rowCount() == 0 ? static_cast<QWidget *>(m_empty) : m_grid);
+    };
+    connect(&m_videos, &QAbstractItemModel::modelReset, this, showEmpty);
+    connect(&m_videos, &QAbstractItemModel::rowsInserted, this, showEmpty);
+    showEmpty();
 
     /* Wiring */
     connect(m_grid, &QListView::activated, this, [this](const QModelIndex &index) {

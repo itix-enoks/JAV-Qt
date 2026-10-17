@@ -86,8 +86,7 @@ QVariant VideoListModel::data(const QModelIndex &index, int role) const
     case Qt::ToolTipRole:
         return QString("<b>%1</b><br>%2").arg(video.id.toHtmlEscaped(), display::title(video).toHtmlEscaped());
     case Qt::DecorationRole:
-        /* Covering the poster's box: PosterDelegate crops what sticks out */
-        return m_images.get(posterPath(video), m_posterSize, Qt::KeepAspectRatioByExpanding);
+        return m_images.get(posterPath(video), m_posterSize);
     case PosterRole:
         return posterPath(video);
     case BookmarkedRole:
@@ -170,18 +169,14 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
     const QRect image(card.topLeft(), m_posterSize);
     const QRect caption(image.left(), image.bottom() + 1, image.width(), CAPTION_HEIGHT);
 
-    /*
-     * Poster, filling its box: jackets are not all exactly the box's shape,
-     * so the middle part is shown rather than leaving bars at the sides.
-     * A white page until it is loaded.
-     */
+    /* Poster, whole and centered in its box; a white page until it is loaded */
     painter->fillRect(image, Qt::white);
     const QPixmap pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
     if (!pixmap.isNull()) {
-        const QSizeF shown = QSizeF(image.size()).scaled(pixmap.size(), Qt::KeepAspectRatio);
-        QRectF source(QPointF(), shown);
-        source.moveCenter(QRectF(pixmap.rect()).center());
-        painter->drawPixmap(QRectF(image), pixmap, source);
+        const QSize size = (pixmap.size() / pixmap.devicePixelRatio()).scaled(image.size(), Qt::KeepAspectRatio);
+        QRect target(QPoint(), size);
+        target.moveCenter(image.center());
+        painter->drawPixmap(target, pixmap);
     } else if (index.data(VideoListModel::PosterRole).toString().isEmpty()) {
         painter->setPen(QColor(0x70, 0x70, 0x70));
         painter->drawText(image, Qt::AlignCenter, tr("No image"));

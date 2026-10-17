@@ -11,12 +11,12 @@ namespace {
 
     constexpr int CACHE_KIB = 512 * 1024;
 
-    QImage loadScaled(const QString &path, const QSize &devicePixels, Qt::AspectRatioMode mode)
+    QImage loadScaled(const QString &path, const QSize &devicePixels)
     {
         QImageReader reader(path);
         reader.setAutoTransform(true);
         const QSize size = reader.size();
-        const QSize scaled = size.scaled(devicePixels, mode);
+        const QSize scaled = size.scaled(devicePixels, Qt::KeepAspectRatio);
         if (size.isValid() && (scaled.width() < size.width() || scaled.height() < size.height()))
             reader.setScaledSize(scaled);  /* only ever smaller: JPEGs then decode faster */
         return reader.read();
@@ -29,14 +29,14 @@ ImageCache::ImageCache(QObject *parent) : QObject(parent)
     m_pixmaps.setMaxCost(CACHE_KIB);
 }
 
-QString ImageCache::key(const QString &path, const QSize &bound, Qt::AspectRatioMode mode)
+QString ImageCache::key(const QString &path, const QSize &bound)
 {
-    return QString("%1|%2x%3|%4").arg(path).arg(bound.width()).arg(bound.height()).arg(int(mode));
+    return QString("%1|%2x%3").arg(path).arg(bound.width()).arg(bound.height());
 }
 
-QPixmap ImageCache::get(const QString &path, const QSize &bound, Qt::AspectRatioMode mode)
+QPixmap ImageCache::get(const QString &path, const QSize &bound)
 {
-    const QString k = key(path, bound, mode);
+    const QString k = key(path, bound);
     if (const QPixmap *pixmap = m_pixmaps.object(k))
         return *pixmap;
     const QPixmap *previous = m_pixmaps.object(m_latest.value(path));
@@ -64,6 +64,6 @@ QPixmap ImageCache::get(const QString &path, const QSize &bound, Qt::AspectRatio
         }
         emit this->loaded(path);
     });
-    watcher->setFuture(QtConcurrent::run(loadScaled, path, devicePixels, mode));
+    watcher->setFuture(QtConcurrent::run(loadScaled, path, devicePixels));
     return meanwhile;
 }

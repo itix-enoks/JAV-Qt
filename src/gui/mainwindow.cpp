@@ -72,8 +72,18 @@ MainWindow::MainWindow(Options &options, DBManager &db, Scraper &scraper, QWidge
         this->showLibrary();
     });
 
+    connect(m_videoPage, &VideoPage::starsEdited, this, [this](const QString &id, double stars) {
+        this->editUserField(id, [&](model::Video &video) { video.stars = stars; },
+                            [&] { m_db.storeStars(id, stars); });
+    });
+    connect(m_videoPage, &VideoPage::bookmarkedEdited, this, [this](const QString &id, bool bookmarked) {
+        this->editUserField(id, [&](model::Video &video) { video.bookmarked = bookmarked; },
+                            [&] { m_db.storeBookmarked(id, bookmarked); });
+    });
+
     connect(&m_scraper, &Scraper::stored, this, [this](const model::Video &video) {
-        m_videos.upsert(video);
+        /* Reloaded: the stored entry kept the user's stars and bookmark */
+        m_videos.upsert(m_db.loadDB(model::Type::Video, video.id));
         this->updateStatus();
     });
     connect(&m_scraper, &Scraper::skipped, this, &MainWindow::updateStatus);
@@ -140,6 +150,22 @@ void MainWindow::showLibrary()
 {
     m_import->show();
     m_pages->setCurrentWidget(m_libraryPage);
+}
+
+void MainWindow::editUserField(const QString &id, const std::function<void(model::Video &)> &edit,
+                               const std::function<void()> &store)
+{
+    try {
+        store();
+    } catch (const std::exception &e) {
+        spdlog::error("Could not store {}: {}", id, e.what());
+        return;
+    }
+    if (const model::Video *stored = m_videos.find(id)) {
+        model::Video video = *stored;
+        edit(video);
+        m_videos.upsert(video);  /* re-sorts the library */
+    }
 }
 
 void MainWindow::updateStatus()

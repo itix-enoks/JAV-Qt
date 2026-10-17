@@ -39,6 +39,13 @@ void VideoListModel::upsert(const model::Video &video)
     this->endInsertRows();
 }
 
+const model::Video *VideoListModel::find(const QString &id) const
+{
+    const auto it = std::find_if(m_videos.begin(), m_videos.end(),
+                                 [&id](const model::Video &v) { return v.id == id; });
+    return it == m_videos.end() ? nullptr : &*it;
+}
+
 int VideoListModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ? 0 : int(m_videos.size());

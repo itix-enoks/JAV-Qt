@@ -28,6 +28,8 @@ public:
     /* Add `video`, or replace the stored video with its id */
     void upsert(const model::Video &video);
     const model::Video &video(int row) const { return m_videos[row]; }
+    /* Null if there is no video with this id */
+    const model::Video *find(const QString &id) const;
     const std::vector<model::Video> &videos() const { return m_videos; }
 
     int rowCount(const QModelIndex &parent = {}) const override;

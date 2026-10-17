@@ -92,6 +92,10 @@ namespace model {
         std::vector<Thumbnail> covers;   /* full jacket, front and back */
         std::vector<Thumbnail> posters;  /* front of the jacket only */
         std::vector<std::vector<Thumbnail>> previews;  /* sample stills */
+
+        /* The user's own, kept when the video is scraped again (see DBManager) */
+        double stars = 0;  /* 0 to 5, in halves */
+        bool bookmarked = false;
     };
 
     struct JavId : model::Base {

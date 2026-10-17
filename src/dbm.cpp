@@ -2,6 +2,8 @@
 #include "log.hpp"
 #include "paths.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 #include <QCoreApplication>
@@ -17,6 +19,10 @@ namespace {
 
     const QString VIDEOS_KEY = "videos";
     const QString NOTES_KEY = "notes";
+    const QString STARS_KEY = "stars";
+    const QString BOOKMARKED_KEY = "bookmarked";
+    /* Written by the user, not by scraping: storeDB() keeps them */
+    const QStringList USER_KEYS{NOTES_KEY, STARS_KEY, BOOKMARKED_KEY};
 
     /* Pair of id and romanized name, shared by Director, Maker and Actress */
     template <typename T>
@@ -153,6 +159,9 @@ namespace {
         for (const auto &sizes : thumbnails["previews"].toArray())
             video.previews.push_back(thumbnailsFromJson(sizes));
 
+        video.stars = json[STARS_KEY].toDouble();
+        video.bookmarked = json[BOOKMARKED_KEY].toBool();
+
         return video;
     }
 
@@ -201,12 +210,27 @@ QString DBManager::loadNotes(const QString &id)
 
 void DBManager::storeNotes(const QString &id, const QString &notes)
 {
+    this->storeUserField(id, NOTES_KEY, notes);
+}
+
+void DBManager::storeStars(const QString &id, double stars)
+{
+    this->storeUserField(id, STARS_KEY, std::round(std::clamp(stars, 0.0, 5.0) * 2) / 2);
+}
+
+void DBManager::storeBookmarked(const QString &id, bool bookmarked)
+{
+    this->storeUserField(id, BOOKMARKED_KEY, bookmarked);
+}
+
+void DBManager::storeUserField(const QString &id, const QString &key, const QJsonValue &value)
+{
     QJsonObject root = this->readRoot();
     QJsonObject videos = root[VIDEOS_KEY].toObject();
     if (!videos.contains(id))
-        throw std::invalid_argument("Cannot store notes for a video that isn't stored");
+        throw std::invalid_argument("Cannot store " + key.toStdString() + " for a video that isn't stored");
     QJsonObject video = videos[id].toObject();
-    video[NOTES_KEY] = notes;
+    video[key] = value;
     videos[id] = video;
     root[VIDEOS_KEY] = videos;
     this->writeRoot(root);
@@ -222,8 +246,10 @@ void DBManager::storeDB(const model::Video &video)
     QJsonObject json = videoToJson(video);
     if (videos.contains(video.id)) {
         spdlog::debug("Overwriting existing entry for {}", video.id);
-        if (const QJsonValue notes = videos.value(video.id)[NOTES_KEY]; notes.isString())
-            json[NOTES_KEY] = notes;
+        const QJsonObject stored = videos.value(video.id).toObject();
+        for (const QString &key : USER_KEYS)
+            if (stored.contains(key))
+                json[key] = stored[key];
     }
     videos[video.id] = json;
     root[VIDEOS_KEY] = videos;

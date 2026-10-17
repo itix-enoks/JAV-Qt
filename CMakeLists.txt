@@ -101,6 +101,7 @@ qt_add_executable(jav-qt WIN32 MACOSX_BUNDLE
     src/gui/imagecache.cpp src/gui/imagecache.hpp
     src/gui/librarypage.cpp src/gui/librarypage.hpp
     src/gui/mainwindow.cpp src/gui/mainwindow.hpp
+    src/gui/starrating.cpp src/gui/starrating.hpp
     src/gui/style.cpp src/gui/style.hpp
     src/gui/videolist.cpp src/gui/videolist.hpp
     src/gui/videopage.cpp src/gui/videopage.hpp)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include <QLabel>
@@ -41,6 +42,9 @@ private:
     void openVideo(const model::Video &video);
     void showLibrary();
     void updateStatus();
+    /* Store one of the user's fields of a video, then show it in the library */
+    void editUserField(const QString &id, const std::function<void(model::Video &)> &edit,
+                       const std::function<void()> &store);
 
     Options &m_options;
     DBManager &m_db;

@@ -9,6 +9,7 @@
 #include <QWidget>
 
 #include "gui/imagecache.hpp"
+#include "gui/starrating.hpp"
 #include "gui/librarypage.hpp"
 #include "models/video.hpp"
 
@@ -54,11 +55,15 @@ signals:
     void filterRequested(LibraryPage::Filter filter, const QString &value);
     /* Debounced while typing */
     void notesEdited(const QString &id, const QString &notes);
+    void starsEdited(const QString &id, double stars);
+    void bookmarkedEdited(const QString &id, bool bookmarked);
 
 private:
     void showMetadata(const model::Video &video, int fileCount);
     void showPreviews(const model::Video &video);
     void setFiles(const QStringList &files);
+    void showStars(double stars);
+    void showBookmarked(bool bookmarked);
     void openLink(const QString &link);
 
     ImageCache &m_images;
@@ -70,5 +75,8 @@ private:
     QListWidget *m_previews;
     QLabel *m_metadata;
     QPlainTextEdit *m_notes;
+    StarRating *m_stars;
+    QLabel *m_starsText;
+    QPushButton *m_bookmark;
     QTimer m_saveNotes;
 };

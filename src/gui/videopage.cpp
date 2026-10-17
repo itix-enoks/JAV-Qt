@@ -1,5 +1,6 @@
 #include "gui/videopage.hpp"
 #include "gui/display.hpp"
+#include "gui/starrating.hpp"
 #include "gui/style.hpp"
 #include "thumbnails.hpp"
 
@@ -170,8 +171,27 @@ VideoPage::VideoPage(ImageCache &images, QWidget *parent) : QWidget(parent), m_i
     notesLayout->addWidget(notesTitle);
     notesLayout->addWidget(m_notes);
 
+    /* The user's own rating and bookmark */
+    m_stars = new StarRating;
+    m_starsText = new QLabel;
+    m_starsText->setObjectName("muted");
+    m_bookmark = new QPushButton;
+    m_bookmark->setObjectName("bookmark");
+    m_bookmark->setCheckable(true);
+    m_bookmark->setCursor(Qt::PointingHandCursor);
+
+    auto *yoursPost = post();
+    auto *yours = new QHBoxLayout(yoursPost);
+    yours->setContentsMargins(14, 10, 14, 10);
+    yours->setSpacing(10);
+    yours->addWidget(m_stars);
+    yours->addWidget(m_starsText);
+    yours->addStretch(1);
+    yours->addWidget(m_bookmark);
+
     auto *info = new QVBoxLayout;
     info->setSpacing(16);
+    info->addWidget(yoursPost);
     info->addWidget(metadataScroll, 3);
     info->addWidget(notesPost, 2);
     auto *infoWidget = new QWidget;
@@ -199,6 +219,15 @@ VideoPage::VideoPage(ImageCache &images, QWidget *parent) : QWidget(parent), m_i
     connect(m_metadata, &QLabel::linkActivated, this, &VideoPage::openLink);
     connect(m_previews, &QListWidget::itemActivated, this, [](QListWidgetItem *item) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(item->data(Qt::UserRole).toString()));
+    });
+
+    connect(m_stars, &StarRating::valueChanged, this, [this](double stars) {
+        this->showStars(stars);
+        emit this->starsEdited(m_id, stars);
+    });
+    connect(m_bookmark, &QPushButton::toggled, this, [this](bool bookmarked) {
+        this->showBookmarked(bookmarked);
+        emit this->bookmarkedEdited(m_id, bookmarked);
     });
 
     m_saveNotes.setSingleShot(true);
@@ -239,9 +268,27 @@ void VideoPage::showVideo(const model::Video &video, const QStringList &files, c
     this->showPreviews(video);
     this->showMetadata(video, int(files.size()));
 
+    m_stars->setValue(video.stars);
+    this->showStars(video.stars);
+    {
+        const QSignalBlocker blocker(m_bookmark);
+        m_bookmark->setChecked(video.bookmarked);
+    }
+    this->showBookmarked(video.bookmarked);
+
     const QSignalBlocker blocker(m_notes);
     m_notes->setPlainText(notes);
     m_notesDirty = false;
+}
+
+void VideoPage::showStars(double stars)
+{
+    m_starsText->setText(stars > 0 ? tr("%1 / 5").arg(stars, 0, 'f', 1) : tr("Not rated"));
+}
+
+void VideoPage::showBookmarked(bool bookmarked)
+{
+    m_bookmark->setText(bookmarked ? tr("\u2605  Bookmarked") : tr("\u2606  Bookmark"));
 }
 
 void VideoPage::setFiles(const QStringList &files)

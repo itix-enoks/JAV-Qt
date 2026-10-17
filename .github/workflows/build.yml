@@ -99,7 +99,8 @@ jobs:
       - name: Package (Windows zip)
         if: runner.os == 'Windows'
         run: |
-          cmake --install build --config Release --prefix "staging/JAV-Qt"
+          # Qt's deploy step needs an absolute prefix; `pwd -W` gives D:/... instead of /d/...
+          cmake --install build --config Release --prefix "$(pwd -W)/staging/JAV-Qt"
           echo "APP=staging/JAV-Qt/JAV-Qt.exe" >> "$GITHUB_ENV"
           mkdir dist
           (cd staging && 7z a -tzip "../dist/JAV-Qt-$VERSION-windows-x86_64.zip" JAV-Qt)
@@ -107,7 +108,7 @@ jobs:
       - name: Package (macOS disk image)
         if: runner.os == 'macOS'
         run: |
-          cmake --install build --config Release --prefix staging
+          cmake --install build --config Release --prefix "$PWD/staging"  # Qt's deploy step needs it absolute
           # Deploying Qt rewrites the binaries; Apple Silicon only runs signed code,
           # so sign the bundle again (ad hoc: no Apple developer account involved)
           codesign --force --deep --sign - staging/JAV-Qt.app

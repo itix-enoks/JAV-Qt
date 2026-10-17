@@ -25,7 +25,7 @@ namespace style {
     inline const QColor TITLE{0xaf, 0x0a, 0x0f};
 
     /*
-     * The only font family the GUI uses, loaded from assets/fonts/inter: the
+     * The only font family the GUI uses, loaded from fonts/inter: the
      * static fonts cut for text sizes. Qt only registers the default instance
      * of the variable fonts, which would leave bold faked.
      */
@@ -33,7 +33,7 @@ namespace style {
 
     /*
      * For the Japanese text Inter has no glyphs for (titles, names), loaded
-     * from assets/fonts/noto-sans-cjk-jp. Listed after Inter so it only fills
+     * from fonts/noto-sans-cjk-jp. Listed after Inter so it only fills
      * in what Inter lacks.
      */
     inline const QString CJK_FONT_FAMILY = "Noto Sans CJK JP";

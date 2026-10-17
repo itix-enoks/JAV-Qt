@@ -1,5 +1,6 @@
 #include "thumbnails.hpp"
 #include "log.hpp"
+#include "paths.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -109,13 +110,12 @@ struct ThumbnailFetcher::Job {
 
 ThumbnailFetcher::ThumbnailFetcher(QObject *parent) : QObject(parent)
 {
-    /* Resolve against the executable, not the working directory */
-    m_root = QDir(QDir::cleanPath(QCoreApplication::applicationDirPath() + "/.."));
+    m_root = QDir(paths::dataDir());
 }
 
 QString ThumbnailFetcher::absolutePath(const QString &path)
 {
-    return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../" + path);
+    return QDir::cleanPath(paths::dataDir() + "/" + path);
 }
 
 void ThumbnailFetcher::fetch(const model::Video &video)

@@ -90,6 +90,7 @@ qt_add_executable(jav-qt WIN32 MACOSX_BUNDLE
     src/models/video.hpp
     src/network.cpp src/network.hpp
     src/options.cpp src/options.hpp
+    src/paths.cpp src/paths.hpp
     src/scraper.cpp src/scraper.hpp
     src/thumbnails.cpp src/thumbnails.hpp
     src/providers/dmm.cpp src/providers/dmm.hpp

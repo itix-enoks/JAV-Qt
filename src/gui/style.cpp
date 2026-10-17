@@ -1,5 +1,6 @@
 #include "gui/style.hpp"
 #include "log.hpp"
+#include "paths.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -8,10 +9,10 @@
 
 namespace {
 
-    /* Register every font file matching `pattern` in assets/fonts/<subdir>; false if any failed */
+    /* Register every font file matching `pattern` in paths::fontsDir()/<subdir>; false if any failed */
     bool addFonts(const QString &subdir, const QString &pattern)
     {
-        const QDir dir(QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../assets/fonts/" + subdir));
+        const QDir dir(paths::fontsDir() + "/" + subdir);
         const QStringList files = dir.entryList({pattern}, QDir::Files);
         if (files.isEmpty()) {
             spdlog::error("No fonts {} in {}", pattern, dir.path());

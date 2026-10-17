@@ -11,7 +11,7 @@
 
 /**
  * Downloads every available size of a video's jacket, preview stills and cast
- * pictures into <project root>/assets/thumbnails/<video id>/.
+ * pictures into <paths::dataDir()>/assets/thumbnails/<video id>/.
  * Images are fetched straight from DMM's CDN, which has no Cloudflare
  * protection, so FlareSolverr is not involved.
  */
@@ -19,7 +19,7 @@ class ThumbnailFetcher : public QObject {
     Q_OBJECT
 
 public:
-    /* Relative to the project root; also the prefix of every stored Thumbnail::path */
+    /* Relative to paths::dataDir(); also the prefix of every stored Thumbnail::path */
     static constexpr const char *THUMBNAILS_DIR = "assets/thumbnails";
 
     ThumbnailFetcher(QObject *parent = nullptr);
@@ -46,5 +46,5 @@ private:
     void save(const std::shared_ptr<Job> &job);
 
     QNetworkAccessManager m_network;
-    QDir m_root;  /* project root, next to build/ */
+    QDir m_root;  /* paths::dataDir() */
 };

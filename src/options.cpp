@@ -1,11 +1,15 @@
 #include "options.hpp"
 
 #include "log.hpp"
+#include "paths.hpp"
 
 #include <QSaveFile>
 
 namespace {
-    const QString OPTIONS_PATH = "../options.json";
+    QString optionsPath()
+    {
+        return paths::dataPath("options.json");
+    }
 }
 
 Options::Options()
@@ -15,7 +19,11 @@ Options::Options()
 
 void Options::loadOptions()
 {
-    QFile file(OPTIONS_PATH);
+    QFile file(optionsPath());
+    if (!file.exists()) {
+        spdlog::info("No {} yet, using defaults", file.fileName());
+        return;
+    }
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         spdlog::warn("Could not open {}: {}, using defaults", file.fileName(), file.errorString());
         return;
@@ -34,9 +42,9 @@ void Options::loadOptions()
         throw std::runtime_error("Unexpected structure in options.json");
 
     QJsonObject jsonObj = jsonDoc.object();
-    this->m_dockerHost = jsonObj["host"].toString();
-    this->m_dockerPort = jsonObj["port"].toInt();
-    this->m_libraryDir = jsonObj["library"].toString();
+    this->m_dockerHost = jsonObj["host"].toString(this->m_dockerHost);
+    this->m_dockerPort = jsonObj["port"].toInt(this->m_dockerPort);
+    this->m_libraryDir = jsonObj["library"].toString(this->m_libraryDir);
     spdlog::info("Loaded options: FlareSolverr at {}:{}, library \"{}\"", this->m_dockerHost,
                  this->m_dockerPort, this->m_libraryDir);
 }
@@ -44,7 +52,7 @@ void Options::loadOptions()
 void Options::saveOptions()
 {
     QJsonObject jsonObj;
-    QFile in(OPTIONS_PATH);
+    QFile in(optionsPath());
     if (in.open(QIODevice::ReadOnly | QIODevice::Text))
         jsonObj = QJsonDocument::fromJson(in.readAll()).object();
 
@@ -52,7 +60,7 @@ void Options::saveOptions()
     jsonObj["port"] = this->m_dockerPort;
     jsonObj["library"] = this->m_libraryDir;
 
-    QSaveFile out(OPTIONS_PATH);
+    QSaveFile out(optionsPath());
     if (!out.open(QIODevice::WriteOnly | QIODevice::Text) || out.write(QJsonDocument(jsonObj).toJson()) < 0
         || !out.commit())
         throw std::runtime_error("Could not write options.json");

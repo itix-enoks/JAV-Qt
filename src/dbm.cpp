@@ -1,5 +1,6 @@
 #include "dbm.hpp"
 #include "log.hpp"
+#include "paths.hpp"
 
 #include <stdexcept>
 
@@ -100,7 +101,7 @@ namespace {
         }
         json["cast"] = cast;
 
-        /* Paths are relative to the project root, like this file */
+        /* Paths are relative to paths::dataDir(), like this file */
         QJsonArray previews;
         for (const auto &sizes : video.previews)
             previews.append(thumbnailsToJson(sizes));
@@ -159,8 +160,7 @@ namespace {
 
 DBManager::DBManager()
 {
-    /* Resolve against the executable, not the working directory */
-    m_path = QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("../db.json");
+    m_path = paths::dataPath("db.json");
 
     if (QFile::exists(m_path)) {
         spdlog::info("Using database {}", m_path);

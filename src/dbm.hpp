@@ -8,7 +8,7 @@
 #include "models/video.hpp"
 
 /**
- * Manager of the database in <project root>/db.json.
+ * Manager of the database, db.json in paths::dataDir().
  */
 class DBManager {
 public:
@@ -26,5 +26,5 @@ private:
     QJsonObject readRoot();
     void writeRoot(const QJsonObject &root);
 
-    QString m_path;  /* db.json in the project root, next to build/ */
+    QString m_path;  /* db.json in paths::dataDir() */
 };

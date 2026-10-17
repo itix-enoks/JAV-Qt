@@ -48,7 +48,7 @@ namespace model {
      * is set (a candidate scraped from the page, path still empty).
      */
     struct Thumbnail : model::Base {
-        QString path;  /* relative to the project root, e.g. "assets/thumbnails/MKMP-705/cover-800x537.jpg" */
+        QString path;  /* relative to paths::dataDir(), e.g. "assets/thumbnails/MKMP-705/cover-800x537.jpg" */
         QUrl url;      /* where it was downloaded from */
         int width = 0;
         int height = 0;

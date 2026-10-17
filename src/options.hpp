@@ -14,9 +14,10 @@ public:
     QUrl dockerAddress();
 
     /**
-     * Options
+     * Options, in options.json in paths::dataDir(). The defaults match
+     * FlareSolverr's own, as set up in the README.
      */
-    QString m_dockerHost;
-    int m_dockerPort = -1;
+    QString m_dockerHost = "127.0.0.1";
+    int m_dockerPort = 8191;
     QString m_libraryDir;  /* root of the local video collection */
 };

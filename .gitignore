@@ -1,6 +1,9 @@
 # Build trees
 /build*/
 
-# Runtime data: the local database (with user notes) and downloaded images
+# Runtime data: the local database (with user notes), downloaded images and logs,
+# when JAVQT_DATA_DIR points into the repository
 db.json
 assets/thumbnails/
+jav-qt*.log
+/dev-data/

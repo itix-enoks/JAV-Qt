@@ -23,6 +23,12 @@ namespace {
     constexpr int CAST_PHOTO = 100;
     constexpr int CAST_COLUMNS = 3;
 
+    /* Qt's rich text paints an <hr> with its background color, ignoring borders */
+    QString divider()
+    {
+        return QString("<hr style=\"background-color: %1;\"/>").arg(style::POST_BORDER.name());
+    }
+
     QFrame *post()
     {
         auto *frame = new QFrame;
@@ -309,7 +315,7 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
                      : video.provider == model::provider::JAVLIBRARY ? QString("JavLibrary")
                                                                       : QString();
 
-    html += "<hr style=\"border: none; border-top: 1px solid #b7c5d9;\"/><table cellspacing=\"0\">";
+    html += divider() + "<table cellspacing=\"0\">";
     html += row(tr("Released"), date(video.releaseDate));
     html += row(tr("Length"), video.lengthMin > 0 ? tr("%1 min").arg(video.lengthMin) : QString());
     html += row(tr("Rating"), video.rating ? QString("%1 / 10").arg(video.rating->value, 0, 'f', 1) : QString());
@@ -324,8 +330,8 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
 
     /* Cast, with each actress's own picture */
     if (!video.cast.empty()) {
-        html += QString("<hr style=\"border: none; border-top: 1px solid #b7c5d9;\"/>"
-                        "<p style=\"color: %1; font-weight: bold; margin: 0 0 6px 0;\">%2</p>"
+        html += divider();
+        html += QString("<p style=\"color: %1; font-weight: bold; margin: 0 0 6px 0;\">%2</p>"
                         "<table cellspacing=\"6\"><tr>")
                     .arg(style::NAME.name(), tr("Cast"));
         for (size_t i = 0; i < video.cast.size(); ++i) {

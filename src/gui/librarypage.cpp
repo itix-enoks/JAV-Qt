@@ -1,9 +1,15 @@
 #include "gui/librarypage.hpp"
 #include "gui/display.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <iterator>
 #include <set>
 
 #include <QFrame>
+#include <QKeySequence>
+#include <QShortcut>
+#include <QWheelEvent>
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QScrollBar>
@@ -94,7 +100,9 @@ LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(pare
     m_grid = new QListView;
     m_grid->setObjectName("posterGrid");
     m_grid->setModel(&m_filter);
-    m_grid->setItemDelegate(new PosterDelegate(m_grid));
+    m_delegate = new PosterDelegate(m_grid);
+    m_grid->setItemDelegate(m_delegate);
+    m_grid->viewport()->installEventFilter(this);  /* Ctrl + wheel zooms */
     m_grid->setViewMode(QListView::IconMode);
     m_grid->setResizeMode(QListView::Adjust);
     m_grid->setMovement(QListView::Static);
@@ -157,6 +165,38 @@ LibraryPage::LibraryPage(VideoListModel &videos, QWidget *parent) : QWidget(pare
     connect(&m_filter, &QAbstractItemModel::rowsInserted, this, updateCount);
     connect(&m_filter, &QAbstractItemModel::rowsRemoved, this, updateCount);
     connect(&m_filter, &QAbstractItemModel::modelReset, this, updateCount);
+
+    /*
+     * Zoom: the platform's zoom keys, plus Ctrl+= since Ctrl++ needs Shift on
+     * most keyboards. Each key once, as a key bound twice triggers neither.
+     * For the whole window (the focus may be in the top bar), but only while
+     * this page is shown.
+     */
+    auto keysOf = [](QKeySequence::StandardKey standard, const QKeySequence &extra) {
+        QList<QKeySequence> keys = QKeySequence::keyBindings(standard);
+        if (!keys.contains(extra))
+            keys.append(extra);
+        return keys;
+    };
+    const std::pair<QList<QKeySequence>, int> zoomKeys[] = {
+        {keysOf(QKeySequence::ZoomIn, QKeySequence(Qt::CTRL | Qt::Key_Equal)), +1},
+        {keysOf(QKeySequence::ZoomOut, QKeySequence(Qt::CTRL | Qt::Key_Minus)), -1},
+        {{QKeySequence(Qt::CTRL | Qt::Key_0)}, 0},
+    };
+    for (const auto &[keys, steps] : zoomKeys) {
+        for (const QKeySequence &key : keys) {
+            auto *shortcut = new QShortcut(key, this);
+            shortcut->setContext(Qt::WindowShortcut);
+            connect(shortcut, &QShortcut::activated, this, [this, steps] {
+                if (steps == 0) {
+                    this->applyZoomLevel(DEFAULT_ZOOM_LEVEL);
+                    emit this->zoomChanged(this->zoom());
+                } else {
+                    this->zoomBy(steps);
+                }
+            });
+        }
+    }
 
     this->refreshChoices();
 }
@@ -265,4 +305,53 @@ void LibraryPage::showOnly(Filter filter, const QString &value)
             item->setCheckState(Qt::Checked);
         break;
     }
+}
+
+void LibraryPage::setZoom(double zoom)
+{
+    int nearest = 0;
+    for (int level = 0; level < int(std::size(ZOOM_LEVELS)); ++level)
+        if (std::abs(ZOOM_LEVELS[level] - zoom) < std::abs(ZOOM_LEVELS[nearest] - zoom))
+            nearest = level;
+    this->applyZoomLevel(nearest);
+}
+
+void LibraryPage::zoomBy(int steps)
+{
+    const int level = std::clamp(m_zoomLevel + steps, 0, int(std::size(ZOOM_LEVELS)) - 1);
+    if (level == m_zoomLevel)
+        return;
+    this->applyZoomLevel(level);
+    emit this->zoomChanged(this->zoom());
+}
+
+void LibraryPage::applyZoomLevel(int level)
+{
+    const QModelIndex first = m_grid->indexAt(QPoint(PosterDelegate::MARGIN * 2, PosterDelegate::MARGIN * 2));
+    m_zoomLevel = level;
+
+    const QSize size = (QSizeF(VideoListModel::POSTER_SIZE) * ZOOM_LEVELS[level]).toSize();
+    m_delegate->setPosterSize(size);
+    m_videos.setPosterSize(size);
+    m_grid->doItemsLayout();
+    if (first.isValid())
+        m_grid->scrollTo(first, QAbstractItemView::PositionAtTop);
+}
+
+bool LibraryPage::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_grid->viewport() && event->type() == QEvent::Wheel) {
+        const auto *wheel = static_cast<QWheelEvent *>(event);
+        if (wheel->modifiers() & Qt::ControlModifier) {
+            /* One step per notch (120); touchpads send many small deltas */
+            m_wheelDelta += wheel->angleDelta().y();
+            const int steps = m_wheelDelta / 120;
+            m_wheelDelta -= steps * 120;
+            if (steps != 0)
+                this->zoomBy(steps);
+            return true;
+        }
+        m_wheelDelta = 0;
+    }
+    return QWidget::eventFilter(watched, event);
 }

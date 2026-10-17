@@ -54,6 +54,15 @@ MainWindow::MainWindow(Options &options, DBManager &db, Scraper &scraper, QWidge
     /* Wiring */
     connect(m_import, &QPushButton::clicked, this, &MainWindow::importFolder);
     connect(m_libraryPage, &LibraryPage::videoActivated, this, &MainWindow::openVideo);
+    m_libraryPage->setZoom(m_options.m_posterZoom);
+    connect(m_libraryPage, &LibraryPage::zoomChanged, this, [this](double zoom) {
+        m_options.m_posterZoom = zoom;
+        try {
+            m_options.saveOptions();
+        } catch (const std::exception &e) {
+            spdlog::warn("Could not save the zoom: {}", e.what());
+        }
+    });
     connect(m_videoPage, &VideoPage::back, this, &MainWindow::showLibrary);
     connect(m_videoPage, &VideoPage::filterRequested, this, [this](LibraryPage::Filter filter, const QString &value) {
         m_libraryPage->showOnly(filter, value);

@@ -17,9 +17,9 @@ class VideoListModel : public QAbstractListModel {
     Q_OBJECT
 
 public:
-    enum Role { PosterRole = Qt::UserRole + 1 };
+    enum Role { PosterRole = Qt::UserRole + 1, BookmarkedRole };
 
-    /* Poster size in the grid, in device independent pixels */
+    /* Poster size in the grid at 100% zoom, in device independent pixels */
     static constexpr QSize POSTER_SIZE{176, 240};
 
     VideoListModel(ImageCache &images, QObject *parent = nullptr);
@@ -32,6 +32,9 @@ public:
     const model::Video *find(const QString &id) const;
     const std::vector<model::Video> &videos() const { return m_videos; }
 
+    /* The size posters are loaded in (see PosterDelegate::setPosterSize) */
+    void setPosterSize(const QSize &size);
+
     int rowCount(const QModelIndex &parent = {}) const override;
     QVariant data(const QModelIndex &index, int role) const override;
 
@@ -40,6 +43,7 @@ private:
 
     ImageCache &m_images;
     std::vector<model::Video> m_videos;
+    QSize m_posterSize = POSTER_SIZE;
 };
 
 /**
@@ -92,6 +96,12 @@ public:
 
     using QStyledItemDelegate::QStyledItemDelegate;
 
+    QSize posterSize() const { return m_posterSize; }
+    void setPosterSize(const QSize &size) { m_posterSize = size; }
+
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+private:
+    QSize m_posterSize = VideoListModel::POSTER_SIZE;
 };

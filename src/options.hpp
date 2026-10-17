@@ -20,4 +20,5 @@ public:
     QString m_dockerHost = "127.0.0.1";
     int m_dockerPort = 8191;
     QString m_libraryDir;  /* root of the local video collection */
+    double m_posterZoom = 1;  /* library poster size, 1 = 100% */
 };

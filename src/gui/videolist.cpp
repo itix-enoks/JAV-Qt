@@ -53,11 +53,25 @@ int VideoListModel::rowCount(const QModelIndex &parent) const
 
 QString VideoListModel::posterPath(const model::Video &video)
 {
-    /* The front of the jacket; the whole jacket if there is no poster */
-    const model::Thumbnail *t = display::pick(video.posters, POSTER_SIZE.width());
+    /*
+     * The front of the jacket, else the whole jacket. The largest one, so it
+     * stays sharp at every zoom (it is loaded scaled down) and the path stays
+     * the same while zooming, so ImageCache can show the previous size meanwhile.
+     */
+    constexpr int LARGEST = 1 << 20;
+    const model::Thumbnail *t = display::pick(video.posters, LARGEST);
     if (!t)
-        t = display::pick(video.covers, POSTER_SIZE.width());
+        t = display::pick(video.covers, LARGEST);
     return t ? ThumbnailFetcher::absolutePath(t->path) : QString();
+}
+
+void VideoListModel::setPosterSize(const QSize &size)
+{
+    if (size == m_posterSize)
+        return;
+    m_posterSize = size;
+    if (!m_videos.empty())
+        emit this->dataChanged(this->index(0), this->index(int(m_videos.size()) - 1), {Qt::DecorationRole});
 }
 
 QVariant VideoListModel::data(const QModelIndex &index, int role) const
@@ -72,9 +86,12 @@ QVariant VideoListModel::data(const QModelIndex &index, int role) const
     case Qt::ToolTipRole:
         return QString("<b>%1</b><br>%2").arg(video.id.toHtmlEscaped(), display::title(video).toHtmlEscaped());
     case Qt::DecorationRole:
-        return m_images.get(posterPath(video), POSTER_SIZE);
+        /* Covering the poster's box: PosterDelegate crops what sticks out */
+        return m_images.get(posterPath(video), m_posterSize, Qt::KeepAspectRatioByExpanding);
     case PosterRole:
         return posterPath(video);
+    case BookmarkedRole:
+        return video.bookmarked;
     default:
         return {};
     }
@@ -140,8 +157,7 @@ bool VideoFilter::filterAcceptsRow(int sourceRow, const QModelIndex &) const
 
 QSize PosterDelegate::sizeHint(const QStyleOptionViewItem &, const QModelIndex &) const
 {
-    return {VideoListModel::POSTER_SIZE.width() + 2 * MARGIN,
-            VideoListModel::POSTER_SIZE.height() + CAPTION_HEIGHT + 2 * MARGIN};
+    return {m_posterSize.width() + 2 * MARGIN, m_posterSize.height() + CAPTION_HEIGHT + 2 * MARGIN};
 }
 
 void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -151,17 +167,21 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
 
     const bool hot = option.state & (QStyle::State_MouseOver | QStyle::State_Selected);
     const QRect card = option.rect.adjusted(MARGIN, MARGIN, -MARGIN, -MARGIN);
-    const QRect image(card.topLeft(), VideoListModel::POSTER_SIZE);
+    const QRect image(card.topLeft(), m_posterSize);
     const QRect caption(image.left(), image.bottom() + 1, image.width(), CAPTION_HEIGHT);
 
-    /* Poster, centered in its box; a white page until it is loaded */
+    /*
+     * Poster, filling its box: jackets are not all exactly the box's shape,
+     * so the middle part is shown rather than leaving bars at the sides.
+     * A white page until it is loaded.
+     */
     painter->fillRect(image, Qt::white);
     const QPixmap pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
     if (!pixmap.isNull()) {
-        const QSize size = (pixmap.size() / pixmap.devicePixelRatio()).scaled(image.size(), Qt::KeepAspectRatio);
-        QRect target(QPoint(), size);
-        target.moveCenter(image.center());
-        painter->drawPixmap(target, pixmap);
+        const QSizeF shown = QSizeF(image.size()).scaled(pixmap.size(), Qt::KeepAspectRatio);
+        QRectF source(QPointF(), shown);
+        source.moveCenter(QRectF(pixmap.rect()).center());
+        painter->drawPixmap(QRectF(image), pixmap, source);
     } else if (index.data(VideoListModel::PosterRole).toString().isEmpty()) {
         painter->setPen(QColor(0x70, 0x70, 0x70));
         painter->drawText(image, Qt::AlignCenter, tr("No image"));
@@ -175,11 +195,34 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
     painter->drawLine(caption.topRight(), caption.bottomRight());
     painter->drawLine(caption.bottomLeft(), caption.bottomRight());
 
+    /* Id, and a bookmark ribbon right of it; smaller when zoomed out too far for both */
+    constexpr int GAP = 6, RIBBON_WIDTH = 9, RIBBON_HEIGHT = 12, PADDING = 6, MIN_POINT_SIZE = 6;
+    const QString id = index.data(Qt::DisplayRole).toString();
+    const bool bookmarked = index.data(VideoListModel::BookmarkedRole).toBool();
     QFont font = option.font;
     font.setBold(true);
+    auto width = [&] { return QFontMetrics(font).horizontalAdvance(id) + (bookmarked ? GAP + RIBBON_WIDTH : 0); };
+    while (width() > caption.width() - 2 * PADDING && font.pointSizeF() > MIN_POINT_SIZE)
+        font.setPointSizeF(font.pointSizeF() - 0.5);
     painter->setFont(font);
     painter->setPen(hot ? style::LINK_HOVER : style::SUBJECT);
-    painter->drawText(caption, Qt::AlignCenter, index.data(Qt::DisplayRole).toString());
+    if (!bookmarked) {
+        painter->drawText(caption, Qt::AlignCenter, id);
+    } else {
+        /* Centered together */
+        const int textWidth = QFontMetrics(font).horizontalAdvance(id);
+        const int left = caption.center().x() - (textWidth + GAP + RIBBON_WIDTH) / 2;
+        painter->drawText(QRect(left, caption.top(), textWidth, caption.height()), Qt::AlignCenter, id);
+
+        const QRectF ribbon(left + textWidth + GAP, caption.center().y() - RIBBON_HEIGHT / 2.0 + 0.5,
+                            RIBBON_WIDTH, RIBBON_HEIGHT);
+        const QPolygonF shape{ribbon.topLeft(), ribbon.topRight(), ribbon.bottomRight(),
+                              QPointF(ribbon.center().x(), ribbon.bottom() - RIBBON_HEIGHT / 3.0), ribbon.bottomLeft()};
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(hot ? style::LINK_HOVER : style::TITLE);
+        painter->drawPolygon(shape);
+    }
 
     painter->restore();
 }

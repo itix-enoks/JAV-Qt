@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=JAV-Qt
+Comment=Organize your local JAV collection
+Exec=jav-qt
+Icon=jav-qt
+Terminal=false
+Categories=AudioVideo;Video;

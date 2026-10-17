@@ -6,7 +6,7 @@
 #include <QUrl>
 
 #include <spdlog/spdlog.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 /**
  * Lets Qt strings and URLs be passed directly to spdlog/fmt format strings.

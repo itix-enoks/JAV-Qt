@@ -9,6 +9,8 @@ class Options {
 public:
     Options();
     void loadOptions();
+    /* Write the options back to options.json, keeping keys this class doesn't know */
+    void saveOptions();
     QUrl dockerAddress();
 
     /**
@@ -16,4 +18,5 @@ public:
      */
     QString m_dockerHost;
     int m_dockerPort = -1;
+    QString m_libraryDir;  /* root of the local video collection */
 };

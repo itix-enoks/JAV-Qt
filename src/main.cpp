@@ -95,10 +95,10 @@ int main(int argc, char *argv[]) {
 
     javQt.setStyle("Fusion");  /* the same base look everywhere, under the style sheet */
     const bool fontsLoaded = style::loadFonts();
-    javQt.setStyleSheet(style::sheet());
 
     /* Load options */
     Options options;
+    style::apply(options.m_theme);
 
     DBManager db;
     NetworkManager manager(options);

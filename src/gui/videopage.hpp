@@ -47,6 +47,9 @@ public:
     void showVideo(const model::Video &video, const QStringList &files, const QString &notes);
     const QString &videoId() const { return m_id; }
 
+    /* Rebuild what holds colors of the theme in use, after it changed */
+    void restyle();
+
     /* Emit notesEdited() now for unsaved notes, e.g. before leaving the page */
     void flushNotes();
 
@@ -68,6 +71,8 @@ private:
 
     ImageCache &m_images;
     QString m_id;
+    model::Video m_video;  /* shown */
+    int m_fileCount = 0;
     bool m_notesDirty = false;
 
     ImageView *m_cover;

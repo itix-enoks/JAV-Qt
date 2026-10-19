@@ -46,6 +46,7 @@ void Options::loadOptions()
     this->m_dockerPort = jsonObj["port"].toInt(this->m_dockerPort);
     this->m_libraryDir = jsonObj["library"].toString(this->m_libraryDir);
     this->m_posterZoom = jsonObj["posterZoom"].toDouble(this->m_posterZoom);
+    this->m_theme = jsonObj["theme"].toString(this->m_theme);
     spdlog::info("Loaded options: FlareSolverr at {}:{}, library \"{}\"", this->m_dockerHost,
                  this->m_dockerPort, this->m_libraryDir);
 }
@@ -61,10 +62,12 @@ void Options::saveOptions()
     jsonObj["port"] = this->m_dockerPort;
     jsonObj["library"] = this->m_libraryDir;
     jsonObj["posterZoom"] = this->m_posterZoom;
+    jsonObj["theme"] = this->m_theme;
 
     QSaveFile out(optionsPath());
     if (!out.open(QIODevice::WriteOnly | QIODevice::Text) || out.write(QJsonDocument(jsonObj).toJson()) < 0
         || !out.commit())
         throw std::runtime_error("Could not write options.json");
-    spdlog::debug("Saved options: library \"{}\", poster zoom {}", this->m_libraryDir, this->m_posterZoom);
+    spdlog::debug("Saved options: library \"{}\", poster zoom {}, theme \"{}\"", this->m_libraryDir,
+                  this->m_posterZoom, this->m_theme);
 }

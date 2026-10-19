@@ -169,8 +169,9 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
     const QRect image(card.topLeft(), m_posterSize);
     const QRect caption(image.left(), image.bottom() + 1, image.width(), CAPTION_HEIGHT);
 
-    /* Poster, whole and centered in its box; a white page until it is loaded */
-    painter->fillRect(image, Qt::white);
+    /* Poster, whole and centered in its box; a blank page until it is loaded */
+    const style::Theme &theme = style::theme();
+    painter->fillRect(image, theme.blank);
     const QPixmap pixmap = index.data(Qt::DecorationRole).value<QPixmap>();
     if (!pixmap.isNull()) {
         const QSize size = (pixmap.size() / pixmap.devicePixelRatio()).scaled(image.size(), Qt::KeepAspectRatio);
@@ -178,15 +179,15 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
         target.moveCenter(image.center());
         painter->drawPixmap(target, pixmap);
     } else if (index.data(VideoListModel::PosterRole).toString().isEmpty()) {
-        painter->setPen(QColor(0x70, 0x70, 0x70));
+        painter->setPen(theme.muted);
         painter->drawText(image, Qt::AlignCenter, tr("No image"));
     }
-    painter->setPen(style::POST_BORDER);
+    painter->setPen(theme.postBorder);
     painter->drawRect(image.adjusted(0, 0, -1, -1));
 
     /* Id bar, drawn like a post: border on the right and bottom */
-    painter->fillRect(caption, hot ? style::HIGHLIGHT : style::POST);
-    painter->setPen(hot ? style::HIGHLIGHT_BORDER : style::POST_BORDER);
+    painter->fillRect(caption, hot ? theme.highlight : theme.post);
+    painter->setPen(hot ? theme.highlightBorder : theme.postBorder);
     painter->drawLine(caption.topRight(), caption.bottomRight());
     painter->drawLine(caption.bottomLeft(), caption.bottomRight());
 
@@ -200,7 +201,7 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
     while (width() > caption.width() - 2 * PADDING && font.pointSizeF() > MIN_POINT_SIZE)
         font.setPointSizeF(font.pointSizeF() - 0.5);
     painter->setFont(font);
-    painter->setPen(hot ? style::LINK_HOVER : style::SUBJECT);
+    painter->setPen(hot ? theme.linkHover : theme.subject);
     if (!bookmarked) {
         painter->drawText(caption, Qt::AlignCenter, id);
     } else {
@@ -215,7 +216,7 @@ void PosterDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
                               QPointF(ribbon.center().x(), ribbon.bottom() - RIBBON_HEIGHT / 3.0), ribbon.bottomLeft()};
         painter->setRenderHint(QPainter::Antialiasing);
         painter->setPen(Qt::NoPen);
-        painter->setBrush(hot ? style::LINK_HOVER : style::TITLE);
+        painter->setBrush(hot ? theme.starHover : theme.star);
         painter->drawPolygon(shape);
     }
 

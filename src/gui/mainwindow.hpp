@@ -40,6 +40,7 @@ protected:
 
 private:
     void importFolder();
+    void setTheme(const QString &name);
     void openVideo(const model::Video &video);
     void showLibrary();
     void updateStatus();
@@ -59,5 +60,6 @@ private:
     LibraryPage *m_libraryPage;
     VideoPage *m_videoPage;
     QPushButton *m_import;
+    QPushButton *m_theme;
     QLabel *m_status;
 };

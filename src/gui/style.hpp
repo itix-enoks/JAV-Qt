@@ -1,28 +1,58 @@
 #pragma once
 
+#include <vector>
+
 #include <QColor>
 #include <QString>
 
 /**
- * Yotsuba B, the blue 4chan/Discourse theme.
+ * Color themes: Default Dark (after Gitea's dark mode) and Yotsuba B, the
+ * blue 4chan/Discourse theme.
  */
 namespace style {
 
-    /* Page background: a fade from FADE_TOP at the top to BACKGROUND at the bottom */
-    inline const QColor FADE_TOP{0xd1, 0xd5, 0xee};
-    inline const QColor BACKGROUND{0xee, 0xf2, 0xff};
+    struct Theme {
+        QString name;
 
-    /* Posts: filled boxes with a border on their right and bottom only */
-    inline const QColor POST{0xd6, 0xda, 0xf0};
-    inline const QColor POST_BORDER{0xb7, 0xc5, 0xd9};
-    inline const QColor HIGHLIGHT{0xd6, 0xba, 0xd0};  /* a hovered/selected post */
-    inline const QColor HIGHLIGHT_BORDER{0xba, 0x9d, 0xbf};
+        /* Page background: a fade from fadeTop at the top to background at the bottom */
+        QColor fadeTop;
+        QColor background;
+        QColor bar;  /* behind the top bar, transparent to show the page */
 
-    inline const QColor SUBJECT{0x0f, 0x0c, 0x5d};
-    inline const QColor NAME{0x11, 0x77, 0x43};
-    inline const QColor LINK{0x34, 0x34, 0x5c};
-    inline const QColor LINK_HOVER{0xdd, 0x00, 0x00};
-    inline const QColor TITLE{0xaf, 0x0a, 0x0f};
+        /* Posts: filled boxes with a border on their right and bottom only */
+        QColor post;
+        QColor postBorder;
+        QColor highlight;  /* a hovered/selected post */
+        QColor highlightBorder;
+
+        QColor text;
+        QColor muted;  /* secondary text, e.g. Japanese names next to romanized ones */
+        QColor disabled;
+        QColor subject;
+        QColor label;  /* field names, e.g. "Released" (poster names on 4chan) */
+        QColor link;
+        QColor linkHover;
+        QColor title;  /* a checked button */
+        QColor star;  /* stars and bookmark ribbons */
+        QColor starHover;
+
+        QColor input;  /* text fields, lists */
+        QColor inputBorder;
+        QColor blank;  /* behind an image not loaded yet, an unfilled star */
+    };
+
+    /* Every theme, Default Dark first */
+    const std::vector<Theme> &themes();
+
+    /* The theme in use */
+    const Theme &theme();
+
+    /*
+     * Use the theme named `name` (Default Dark if there is none) for the
+     * application's palette and style sheet. Widgets that paint with theme()
+     * colors themselves must be repainted, rich text rebuilt.
+     */
+    void apply(const QString &name);
 
     /*
      * The only font family the GUI uses, loaded from fonts/inter: the
@@ -41,14 +71,14 @@ namespace style {
     /*
      * Load the bundled fonts and make Inter, with CJK_FONT_FAMILY behind it,
      * the application font. Call before
-     * applying sheet(). Returns false if they could not be loaded.
+     * apply(). Returns false if they could not be loaded.
      */
     bool loadFonts();
 
-    /* Application-wide style sheet */
-    QString sheet();
-
-    /* <a> styled as a Yotsuba B link, for rich text QLabels */
+    /* <a> styled as a link of the theme, for rich text QLabels */
     QString link(const QString &href, const QString &text);
+
+    /* <span> in the theme's muted color */
+    QString muted(const QString &html);
 
 } /* namespace style */

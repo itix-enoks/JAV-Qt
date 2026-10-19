@@ -91,13 +91,13 @@ void StarRating::paintEvent(QPaintEvent *)
 
     const bool hovering = m_hovered >= 0;
     const double shown = hovering ? m_hovered : m_value;
-    const QColor fill = hovering ? style::LINK_HOVER : style::TITLE;
-    const QColor outline = style::POST_BORDER.darker(140);
+    const QColor fill = hovering ? style::theme().starHover : style::theme().star;
+    const QColor outline = style::theme().postBorder.darker(140);
 
     for (int i = 0; i < STARS; ++i) {
         const QRectF box(1 + i * (STAR_SIZE + GAP), 1, STAR_SIZE, STAR_SIZE);
         const QPainterPath star = starPath(box);
-        painter.fillPath(star, Qt::white);
+        painter.fillPath(star, style::theme().blank);
 
         /* Fully, half or not filled */
         const double amount = std::clamp(shown - i, 0.0, 1.0);

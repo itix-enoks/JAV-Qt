@@ -27,7 +27,7 @@ namespace {
     /* Qt's rich text paints an <hr> with its background color, ignoring borders */
     QString divider()
     {
-        return QString("<hr style=\"background-color: %1;\"/>").arg(style::POST_BORDER.name());
+        return QString("<hr style=\"background-color: %1;\"/>").arg(style::theme().postBorder.name());
     }
 
     QFrame *post()
@@ -51,8 +51,8 @@ namespace {
     {
         if (person.nameRo.isEmpty() || person.nameJa.isEmpty() || person.nameRo == person.nameJa)
             return display::name(person).toHtmlEscaped();
-        return QString("%1 <span style=\"color: #707070;\">(%2)</span>")
-            .arg(person.nameRo.toHtmlEscaped(), person.nameJa.toHtmlEscaped());
+        return QString("%1 %2").arg(person.nameRo.toHtmlEscaped(),
+                                     style::muted("(" + person.nameJa.toHtmlEscaped() + ")"));
     }
 
     template <typename T>
@@ -61,7 +61,7 @@ namespace {
         const QString name = display::name(person);
         QString html = style::link(QString("%1:%2").arg(kind, name), name);
         if (!person.nameRo.isEmpty() && !person.nameJa.isEmpty() && person.nameRo != person.nameJa)
-            html += QString(" <span style=\"color: #707070;\">(%1)</span>").arg(person.nameJa.toHtmlEscaped());
+            html += " " + style::muted("(" + person.nameJa.toHtmlEscaped() + ")");
         return html;
     }
 
@@ -94,12 +94,12 @@ void ImageView::paintEvent(QPaintEvent *)
     QRect target(QPoint(), size);
     target.moveCenter(this->rect().center());
 
-    painter.fillRect(target, Qt::white);
+    painter.fillRect(target, style::theme().blank);
     if (!pixmap.isNull())
         painter.drawPixmap(target, pixmap);
     else if (m_path.isEmpty())
         painter.drawText(target, Qt::AlignCenter, tr("No jacket image"));
-    painter.setPen(style::POST_BORDER);
+    painter.setPen(style::theme().postBorder);
     painter.drawRect(target.adjusted(-1, -1, 0, 0));
 }
 
@@ -266,7 +266,9 @@ void VideoPage::showVideo(const model::Video &video, const QStringList &files, c
 
     this->setFiles(files);
     this->showPreviews(video);
-    this->showMetadata(video, int(files.size()));
+    m_video = video;
+    m_fileCount = int(files.size());
+    this->showMetadata(video, m_fileCount);
 
     m_stars->setValue(video.stars);
     this->showStars(video.stars);
@@ -316,6 +318,12 @@ void VideoPage::setFiles(const QStringList &files)
     }
 }
 
+void VideoPage::restyle()
+{
+    if (!m_id.isEmpty())
+        this->showMetadata(m_video, m_fileCount);
+}
+
 void VideoPage::showPreviews(const model::Video &video)
 {
     m_previews->clear();
@@ -339,7 +347,7 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
 {
     const QString label = QString("<td style=\"color: %1; font-weight: bold; padding: 2px 12px 2px 0;\" "
                                   "valign=\"top\">%2</td>")
-                              .arg(style::NAME.name());
+                              .arg(style::theme().label.name());
     auto row = [&label](const QString &name, const QString &valueHtml) {
         return valueHtml.isEmpty() ? QString()
                                    : QString("<tr>%1<td style=\"padding: 2px 0;\">%2</td></tr>")
@@ -347,10 +355,10 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
     };
 
     QString html = QString("<p style=\"color: %1; font-weight: bold; font-size: 15pt; margin: 0 0 6px 0;\">%2</p>")
-                       .arg(style::SUBJECT.name(), video.id.toHtmlEscaped());
+                       .arg(style::theme().subject.name(), video.id.toHtmlEscaped());
     if (!video.titleEn.isEmpty())
         html += QString("<p style=\"color: %1; font-weight: bold; margin: 0 0 4px 0;\">%2</p>")
-                    .arg(style::SUBJECT.name(), video.titleEn.toHtmlEscaped());
+                    .arg(style::theme().subject.name(), video.titleEn.toHtmlEscaped());
     if (!video.titleJa.isEmpty())
         html += QString("<p style=\"margin: 0 0 4px 0;\">%1</p>").arg(video.titleJa.toHtmlEscaped());
 
@@ -371,8 +379,7 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
     html += row(tr("Genres"), genres.join(", "));
     html += row(tr("Source"), source);
     html += row(tr("Files"), fileCount > 0 ? tr("%n file(s)", nullptr, fileCount)
-                                           : QString("<span style=\"color: #707070;\">%1</span>")
-                                                 .arg(tr("not in the library folder")));
+                                           : style::muted(tr("not in the library folder")));
     html += "</table>";
 
     /* Cast, with each actress's own picture */
@@ -380,7 +387,7 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
         html += divider();
         html += QString("<p style=\"color: %1; font-weight: bold; margin: 0 0 6px 0;\">%2</p>"
                         "<table cellspacing=\"6\"><tr>")
-                    .arg(style::NAME.name(), tr("Cast"));
+                    .arg(style::theme().label.name(), tr("Cast"));
         for (size_t i = 0; i < video.cast.size(); ++i) {
             const model::Actress &actress = video.cast[i];
             if (i > 0 && i % CAST_COLUMNS == 0)
@@ -394,7 +401,7 @@ void VideoPage::showMetadata(const model::Video &video, int fileCount)
                                  : QString();
             cell += style::link("actress:" + name, name);
             if (!actress.nameJa.isEmpty() && actress.nameJa != name)
-                cell += QString("<br/><span style=\"color: #707070;\">%1</span>").arg(actress.nameJa.toHtmlEscaped());
+                cell += "<br/>" + style::muted(actress.nameJa.toHtmlEscaped());
             html += QString("<td align=\"center\" valign=\"top\" width=\"%1\">%2</td>").arg(CAST_PHOTO + 24).arg(cell);
         }
         html += "</tr></table>";

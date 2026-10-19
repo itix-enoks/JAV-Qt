@@ -6,7 +6,9 @@
 
 #include <QCloseEvent>
 #include <QFileDialog>
+#include <QActionGroup>
 #include <QHBoxLayout>
+#include <QMenu>
 #include <QMessageBox>
 #include <QShortcut>
 #include <QVBoxLayout>
@@ -17,22 +19,31 @@ MainWindow::MainWindow(Options &options, DBManager &db, Scraper &scraper, QWidge
     this->setWindowTitle("JAV-Qt");
     this->resize(1600, 900);
 
-    /* Top bar: title, scraping status, import */
+    /* Top bar: import, scraping status, theme */
     auto *topBar = new QFrame;
     topBar->setObjectName("topBar");
     topBar->setFrameShape(QFrame::StyledPanel);  /* else its style sheet border is not drawn */
     auto *top = new QHBoxLayout(topBar);
     top->setContentsMargins(16, 6, 16, 6);
-    auto *title = new QLabel("JAV-Qt");
-    title->setObjectName("boardTitle");
+    m_import = new QPushButton(tr("Import"));
+    m_import->setToolTip(tr("Pick the folder with your videos"));
     m_status = new QLabel;
     m_status->setObjectName("status");
-    m_import = new QPushButton(tr("Import From Folder (Library)"));
-    top->addWidget(title);
+    m_theme = new QPushButton(tr("Select theme"));
+    auto *themes = new QMenu(m_theme);
+    auto *themeGroup = new QActionGroup(themes);
+    for (const style::Theme &theme : style::themes()) {
+        QAction *action = themes->addAction(theme.name, this, [this, name = theme.name] { this->setTheme(name); });
+        action->setCheckable(true);
+        action->setChecked(theme.name == style::theme().name);
+        themeGroup->addAction(action);
+    }
+    m_theme->setMenu(themes);
+    top->addWidget(m_import);
     top->addStretch(1);
     top->addWidget(m_status);
     top->addSpacing(16);
-    top->addWidget(m_import);
+    top->addWidget(m_theme);
 
     m_libraryPage = new LibraryPage(m_videos);
     m_videoPage = new VideoPage(m_images);
@@ -40,7 +51,7 @@ MainWindow::MainWindow(Options &options, DBManager &db, Scraper &scraper, QWidge
     m_pages->addWidget(m_libraryPage);
     m_pages->addWidget(m_videoPage);
 
-    /* The Yotsuba B fade is painted on this, behind everything (see style::sheet) */
+    /* The theme's fade is painted on this, behind everything (see style::sheet) */
     auto *central = new QWidget;
     central->setObjectName("central");
     central->setAttribute(Qt::WA_StyledBackground);
@@ -128,7 +139,7 @@ void MainWindow::scanLibrary()
 
 void MainWindow::importFolder()
 {
-    const QString dir = QFileDialog::getExistingDirectory(this, tr("Import From Folder (Library)"),
+    const QString dir = QFileDialog::getExistingDirectory(this, tr("Import"),
                                                           m_library ? m_library->root() : QString());
     if (dir.isEmpty())
         return;
@@ -137,10 +148,23 @@ void MainWindow::importFolder()
     try {
         m_options.saveOptions();
     } catch (const std::exception &e) {
-        QMessageBox::warning(this, tr("Import From Folder"),
+        QMessageBox::warning(this, tr("Import"),
                              tr("The folder is used now, but could not be saved for next time:\n%1").arg(e.what()));
     }
     this->scanLibrary();
+}
+
+void MainWindow::setTheme(const QString &name)
+{
+    style::apply(name);  /* repolishes, so repaints, every widget */
+    m_videoPage->restyle();
+
+    m_options.m_theme = style::theme().name;
+    try {
+        m_options.saveOptions();
+    } catch (const std::exception &e) {
+        spdlog::warn("Could not save the theme: {}", e.what());
+    }
 }
 
 void MainWindow::openVideo(const model::Video &video)

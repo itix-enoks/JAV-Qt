@@ -21,4 +21,5 @@ public:
     int m_dockerPort = 8191;
     QString m_libraryDir;  /* root of the local video collection */
     double m_posterZoom = 1;  /* library poster size, 1 = 100% */
+    QString m_theme;  /* name of a style::themes() entry, empty for the default */
 };

@@ -13,9 +13,10 @@ If macOS cannot verify the app, click *Open Anyway* in *System Settings → Priv
 ### Linux (x86_64)
 Run `chmod +x JAV-Qt-…-linux-x86_64.AppImage` and start it.
 ## Usage
-Click *Import From Folder (Library)* and pick the folder with your videos. Their IDs are read from the file or folder names (e.g. `MKMP-705`). <br>
+Click *Import* and pick the folder with your videos. Their IDs are read from the file or folder names (e.g. `MKMP-705`). <br>
 Rate videos with stars, bookmark them, and sort the library by ID, stars or bookmark. <br>
-Zoom the library with *Ctrl + mouse wheel*, *Ctrl+=* and *Ctrl+-* (*Ctrl+0* resets).
+Zoom the library with *Ctrl + mouse wheel*, *Ctrl+=* and *Ctrl+-* (*Ctrl+0* resets). <br>
+Switch between the *Default Dark* and *Yotsuba B* themes with *Select theme*.
 ## Prerequisites (optional)
 Only needed for English titles and genres from JavLib; without them, titles are in Japanese.
 ### Docker

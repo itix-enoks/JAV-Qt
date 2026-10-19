@@ -244,6 +244,31 @@ namespace {
         return response.toString();
     }
 
+    /*
+     * A search result list holds a div.video per match:
+     * <div class="video"><a href="./javme3jfsq.html" title="IPZZ-782 ..."><div class="id">IPZZ-782</div>...
+     * Href of the match whose id is `id` (also "DSVR-01660" for DSVR-1660), preferring the regular
+     * edition over the "(Blu-ray Disc)" one; empty if there is none.
+     */
+    QString resultFor(const GumboNode *root, const model::JavId &id)
+    {
+        const QString wanted = Library::toString(id);
+        QString found;
+        for (const GumboNode *entry : allByClass(root, "video")) {
+            const GumboNode *a = byTag(entry, GUMBO_TAG_A);
+            const char *href = attr(a, "href");
+            const std::optional<model::JavId> entryId = Library::parseJavId(textOf(byClass(entry, "id")));
+            if (!href || !entryId || Library::toString(*entryId) != wanted)
+                continue;
+            const char *title = attr(a, "title");
+            if (!QString::fromUtf8(title ? title : "").endsWith("(Blu-ray Disc)"))
+                return QString::fromUtf8(href);
+            if (found.isEmpty())
+                found = QString::fromUtf8(href);
+        }
+        return found;
+    }
+
 } /* namespace */
 
 JavLibClient::JavLibClient(NetworkManager &flareSolverr, QObject *parent)
@@ -276,13 +301,35 @@ void JavLibClient::downloadReady(const QUrl &url, const QString &payload)
     m_pending.erase(it);
 
     const model::Video video = parse(payload);
-    if (video.id.isEmpty()) {
-        spdlog::warn("JavLibrary search for {} did not lead to a single video page (several or no "
-                     "matches?)", Library::toString(id));
-        emit this->notFound(id);
+    if (!video.id.isEmpty()) {
+        emit this->found(id, video);
         return;
     }
-    emit this->found(id, video);
+
+    /* Several matches (other ids starting alike, a Blu-ray edition) give a list to pick from */
+    if (url.path().endsWith("/vl_searchbyid.php")) {
+        if (const QUrl page = resultUrl(payload, id, url); page.isValid()) {
+            spdlog::info("JavLibrary search for {} gave several matches, following {}", Library::toString(id), page);
+            m_pending.insert(page, id);
+            m_flareSolverr.push(page);
+            return;
+        }
+    }
+    spdlog::warn("JavLibrary has no video page for {}", Library::toString(id));
+    emit this->notFound(id);
+}
+
+QUrl JavLibClient::resultUrl(const QString &payload, const model::JavId &id, const QUrl &searchUrl)
+{
+    const std::optional<QString> page = unwrapFlareSolverr(payload);
+    if (!page)
+        return {};
+    const QByteArray html = page->toUtf8();
+    GumboOutput *output = gumbo_parse_with_options(&kGumboDefaultOptions, html.constData(),
+                                                   static_cast<size_t>(html.size()));
+    const QString href = resultFor(output->root, id);
+    gumbo_destroy_output(&kGumboDefaultOptions, output);
+    return href.isEmpty() ? QUrl() : searchUrl.resolved(QUrl(href));
 }
 
 void JavLibClient::downloadFailed(const QUrl &url)
@@ -311,7 +358,7 @@ model::Video JavLibClient::parse(const QString &payload)
     video.provider = model::provider::JAVLIBRARY;
     video.id = itemText(root, "video_id");
     if (video.id.isEmpty()) {
-        spdlog::warn("No video id found, page is not a video page");
+        spdlog::debug("No video id found, page is not a video page");
         gumbo_destroy_output(&kGumboDefaultOptions, output);
         return video;
     }

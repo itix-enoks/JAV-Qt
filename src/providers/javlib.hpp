@@ -22,7 +22,8 @@ public:
 
     /**
      * Queue a search for `id`, then emit found() or notFound() with `id` as
-     * given here. Unlike DmmClient, a found video may carry another id than
+     * given here. If the search gives a list, the match for `id` is followed
+     * (one more download). Unlike DmmClient, a found video may carry another id than
      * the one searched for, if javlibrary redirected the search to it.
      */
     void lookup(const model::JavId &id);
@@ -40,6 +41,13 @@ public:
      */
     static model::Video parse(const QString &payload);
 
+    /**
+     * Video page of the match for `id` on a FlareSolverr reply wrapping a
+     * search result list, resolved against `searchUrl`; invalid if `id`
+     * isn't listed. The regular edition is preferred over a Blu-ray one.
+     */
+    static QUrl resultUrl(const QString &payload, const model::JavId &id, const QUrl &searchUrl);
+
 signals:
     void found(const model::JavId &id, const model::Video &video);
     void notFound(const model::JavId &id);
@@ -49,5 +57,5 @@ private:
     void downloadFailed(const QUrl &url);
 
     NetworkManager &m_flareSolverr;
-    QHash<QUrl, model::JavId> m_pending;  /* by search url */
+    QHash<QUrl, model::JavId> m_pending;  /* by search or followed video page url */
 };

@@ -113,7 +113,8 @@ void MainWindow::scanLibrary()
     for (const model::JavId &javId : m_library->searchJav()) {
         const QString id = Library::toString(javId);
         const model::Video stored = m_db.loadDB(model::Type::Video, id);
-        if (!stored.provider.isEmpty() && !stored.covers.empty()) {
+        const bool japaneseOnly = stored.provider == model::provider::DMM && stored.titleEn.isEmpty();
+        if (!stored.provider.isEmpty() && !stored.covers.empty() && !japaneseOnly) {
             spdlog::debug("{} already in database, skipping", id);
             continue;
         }

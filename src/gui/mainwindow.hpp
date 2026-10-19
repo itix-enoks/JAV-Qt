@@ -30,7 +30,8 @@ public:
      * Scan the library folder from the options and scrape every id that isn't
      * stored yet. Entries without a provider predate DMM support (their cast
      * may not match its pictures), and entries without a jacket may have been
-     * stored before thumbnails.
+     * stored before thumbnails. DMM entries without English text are retried
+     * on JavLibrary, which may have been down or given a list of matches.
      */
     void scanLibrary();
 
